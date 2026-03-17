@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Electricity Bill Calculator — India</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f14; --surface: #141720; --surface2: #1c2030;
+      --border: #252a3a; --accent: #f5a623; --accent2: #e05c2a;
+      --text: #e8eaf0; --muted: #6b7280;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Syne', sans-serif; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 40px 16px 80px; overflow-x: hidden;
+    }
+    body::before {
+      content:''; position:fixed; top:-200px; left:-200px;
+      width:600px; height:600px;
+      background:radial-gradient(circle,rgba(245,166,35,0.07) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    header { text-align:center; margin-bottom:48px; animation:fadeDown 0.7s ease both; }
+    .badge {
+      display:inline-block; background:rgba(245,166,35,0.12);
+      border:1px solid rgba(245,166,35,0.3); color:var(--accent);
+      font-family:'DM Mono',monospace; font-size:11px; letter-spacing:2px;
+      padding:4px 12px; border-radius:2px; margin-bottom:16px; text-transform:uppercase;
+    }
+    h1 { font-size:clamp(2rem,6vw,3.5rem); font-weight:800; line-height:1.1; letter-spacing:-1px; }
+    h1 span { background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .subtitle { color:var(--muted); font-size:14px; margin-top:10px; font-family:'DM Mono',monospace; }
+    .card {
+      background:var(--surface); border:1px solid var(--border); border-radius:16px;
+      padding:32px; width:100%; max-width:560px; animation:fadeUp 0.7s ease 0.1s both;
+    }
+    .field { margin-bottom:24px; }
+    label { display:block; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:'DM Mono',monospace; margin-bottom:8px; }
+    select, input[type="number"] {
+      width:100%; background:var(--surface2); border:1px solid var(--border);
+      border-radius:8px; color:var(--text); font-family:'Syne',sans-serif;
+      font-size:15px; padding:12px 16px; outline:none; transition:border-color 0.2s;
+      appearance:none; -webkit-appearance:none;
+    }
+    select:focus, input[type="number"]:focus { border-color:var(--accent); }
+    .select-wrap { position:relative; }
+    .select-wrap::after { content:'▾'; position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--accent); pointer-events:none; font-size:16px; }
+    .consumer-types { display:flex; gap:8px; flex-wrap:wrap; }
+    .consumer-types button {
+      flex:1; min-width:100px; padding:10px; background:var(--surface2);
+      border:1px solid var(--border); border-radius:8px; color:var(--muted);
+      font-family:'Syne',sans-serif; font-size:13px; cursor:pointer; transition:all 0.2s;
+    }
+    .consumer-types button.active { background:rgba(245,166,35,0.12); border-color:var(--accent); color:var(--accent); }
+    .calc-btn {
+      width:100%; padding:16px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      border:none; border-radius:10px; color:#fff; font-family:'Syne',sans-serif;
+      font-size:16px; font-weight:700; letter-spacing:1px; cursor:pointer;
+      transition:opacity 0.2s,transform 0.1s; margin-top:8px; text-transform:uppercase;
+    }
+    .calc-btn:hover { opacity:0.9; transform:translateY(-1px); }
+    .result-card {
+      background:var(--surface); border:1px solid var(--border); border-radius:16px;
+      padding:32px; width:100%; max-width:560px; margin-top:20px;
+      display:none; animation:fadeUp 0.5s ease both;
+    }
+    .result-card.show { display:block; }
+    .result-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+    .result-title { font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:'DM Mono',monospace; }
+    .total-amount { font-size:clamp(2rem,8vw,3rem); font-weight:800; color:var(--accent); letter-spacing:-1px; }
+    .total-amount span { font-size:0.5em; color:var(--muted); font-weight:400; }
+    .slab-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:14px; }
+    .slab-row:last-child { border-bottom:none; }
+    .slab-label { color:var(--muted); font-family:'DM Mono',monospace; font-size:12px; }
+    .slab-units { color:var(--text); }
+    .slab-amount { color:var(--accent); font-weight:600; }
+    .charges-row { display:flex; justify-content:space-between; padding:8px 0; font-size:13px; font-family:'DM Mono',monospace; color:var(--muted); }
+    .charges-row span:last-child { color:var(--text); }
+    .divider { height:1px; background:var(--border); margin:12px 0; }
+    .disclaimer { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; text-align:center; margin-top:24px; line-height:1.6; }
+    .slab-info { background:var(--surface2); border-radius:10px; padding:16px; margin-top:16px; font-family:'DM Mono',monospace; font-size:12px; color:var(--muted); line-height:1.8; }
+    .slab-info strong { color:var(--text); }
+    @keyframes fadeDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
+  </style>
+</head>
+<body>
+<header>
+  <div class="badge">⚡ India Electricity</div>
+  <h1>Bill <span>Calculator</span></h1>
+  <p class="subtitle">State-wise slab rates • All charges included</p>
+</header>
+<div class="card">
+  <div class="field">
+    <label>Select State</label>
+    <div class="select-wrap">
+      <select id="stateSelect">
+        <option value="">-- Choose your state --</option>
+        <option value="WB">West Bengal</option>
+        <option value="MH">Maharashtra</option>
+        <option value="DL">Delhi</option>
+        <option value="TN">Tamil Nadu</option>
+        <option value="KA">Karnataka</option>
+        <option value="UP">Uttar Pradesh</option>
+        <option value="GJ">Gujarat</option>
+        <option value="RJ">Rajasthan</option>
+        <option value="MP">Madhya Pradesh</option>
+        <option value="AP">Andhra Pradesh</option>
+        <option value="TS">Telangana</option>
+        <option value="KL">Kerala</option>
+        <option value="HR">Haryana</option>
+        <option value="PB">Punjab</option>
+        <option value="OD">Odisha</option>
+        <option value="BR">Bihar</option>
+        <option value="AS">Assam</option>
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label>Consumer Type</label>
+    <div class="consumer-types">
+      <button class="active" onclick="setType('domestic',this)">🏠 Domestic</button>
+      <button onclick="setType('commercial',this)">🏪 Commercial</button>
+      <button onclick="setType('industrial',this)">🏭 Industrial</button>
+    </div>
+  </div>
+  <div class="field">
+    <label>Units Consumed (kWh)</label>
+    <input type="number" id="units" placeholder="e.g. 250" min="0"/>
+  </div>
+  <button class="calc-btn" onclick="calculate()">⚡ Calculate Bill</button>
+</div>
+<div class="result-card" id="resultCard">
+  <div class="result-header">
+    <div>
+      <div class="result-title">Estimated Bill</div>
+      <div class="total-amount" id="totalAmount">₹0 <span>/month</span></div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace" id="stateLabel"></div>
+      <div style="font-size:13px;margin-top:4px" id="unitsLabel"></div>
+    </div>
+  </div>
+  <div class="slab-breakdown" id="slabBreakdown"></div>
+  <div class="divider"></div>
+  <div id="extraCharges"></div>
+  <div class="divider"></div>
+  <div class="charges-row" style="font-weight:700;color:var(--text)">
+    <span>TOTAL PAYABLE</span>
+    <span id="finalTotal" style="color:var(--accent)"></span>
+  </div>
+  <div class="slab-info" id="slabInfo"></div>
+</div>
+<p class="disclaimer">⚠️ Rates are approximate based on general tariff orders.<br/>Actual bills may vary. Check your DISCOM for exact rates.</p>
+<script>
+const stateData = {
+  WB:{name:"West Bengal (WBSEDCL)",domestic:{slabs:[[25,3.53],[50,4.47],[100,5.50],[200,6.22],[300,7.05],[Infinity,7.90]],fixed:25,fuel:0,tax:0,meter_rent:10},commercial:{slabs:[[100,6.50],[200,7.50],[Infinity,8.50]],fixed:50,fuel:0,tax:0,meter_rent:15},industrial:{slabs:[[Infinity,7.20]],fixed:200,fuel:0,tax:0,meter_rent:20}},
+  DL:{name:"Delhi (BSES/TPDDL)",domestic:{slabs:[[200,3.00],[400,4.50],[800,6.00],[1200,7.00],[Infinity,8.00]],fixed:20,fuel:5,tax:5,meter_rent:0},commercial:{slabs:[[Infinity,9.00]],fixed:100,fuel:5,tax:5,meter_rent:0},industrial:{slabs:[[Infinity,8.50]],fixed:300,fuel:5,tax:5,meter_rent:0}},
+  MH:{name:"Maharashtra (MSEDCL)",domestic:{slabs:[[100,3.25],[300,7.16],[500,11.18],[Infinity,13.25]],fixed:60,fuel:8,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,11.50]],fixed:150,fuel:8,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,9.00]],fixed:400,fuel:8,tax:5,meter_rent:20}},
+  TN:{name:"Tamil Nadu (TANGEDCO)",domestic:{slabs:[[100,0],[200,1.50],[500,3.50],[Infinity,5.50]],fixed:30,fuel:0,tax:0,meter_rent:10},commercial:{slabs:[[Infinity,7.50]],fixed:100,fuel:0,tax:0,meter_rent:15},industrial:{slabs:[[Infinity,6.80]],fixed:300,fuel:0,tax:0,meter_rent:20}},
+  KA:{name:"Karnataka (BESCOM)",domestic:{slabs:[[30,0],[100,4.25],[200,5.85],[Infinity,7.45]],fixed:35,fuel:0,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,8.30]],fixed:100,fuel:0,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,7.00]],fixed:250,fuel:0,tax:5,meter_rent:20}},
+  UP:{name:"Uttar Pradesh (PVVNL/DVVNL)",domestic:{slabs:[[100,3.35],[150,3.85],[300,5.00],[500,5.50],[Infinity,6.00]],fixed:40,fuel:5,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,7.50]],fixed:120,fuel:5,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,6.50]],fixed:300,fuel:5,tax:5,meter_rent:20}},
+  GJ:{name:"Gujarat (DGVCL/PGVCL)",domestic:{slabs:[[50,1.95],[100,3.30],[250,4.85],[Infinity,5.50]],fixed:30,fuel:5,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,8.00]],fixed:100,fuel:5,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,7.00]],fixed:300,fuel:5,tax:5,meter_rent:20}},
+  RJ:{name:"Rajasthan (JVVNL/AVVNL)",domestic:{slabs:[[50,3.15],[150,4.75],[300,5.90],[500,7.25],[Infinity,8.05]],fixed:45,fuel:5,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,9.00]],fixed:150,fuel:5,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,7.50]],fixed:350,fuel:5,tax:5,meter_rent:20}},
+  MP:{name:"Madhya Pradesh (MPMKVVCL)",domestic:{slabs:[[30,2.60],[60,3.50],[150,4.50],[Infinity,5.85]],fixed:35,fuel:5,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,8.00]],fixed:120,fuel:5,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,6.80]],fixed:280,fuel:5,tax:5,meter_rent:20}},
+  AP:{name:"Andhra Pradesh (APEPDCL)",domestic:{slabs:[[50,1.45],[100,2.60],[200,3.76],[300,4.94],[400,6.57],[500,7.47],[Infinity,9.00]],fixed:25,fuel:0,tax:0,meter_rent:10},commercial:{slabs:[[Infinity,8.50]],fixed:100,fuel:0,tax:0,meter_rent:15},industrial:{slabs:[[Infinity,7.20]],fixed:280,fuel:0,tax:0,meter_rent:20}},
+  TS:{name:"Telangana (TSSPDCL)",domestic:{slabs:[[50,1.45],[100,2.60],[200,3.76],[300,4.94],[400,6.57],[Infinity,9.00]],fixed:30,fuel:0,tax:0,meter_rent:10},commercial:{slabs:[[Infinity,8.50]],fixed:100,fuel:0,tax:0,meter_rent:15},industrial:{slabs:[[Infinity,7.20]],fixed:280,fuel:0,tax:0,meter_rent:20}},
+  KL:{name:"Kerala (KSEB)",domestic:{slabs:[[40,2.00],[80,2.60],[120,3.25],[240,4.10],[Infinity,6.30]],fixed:30,fuel:0,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,7.50]],fixed:100,fuel:0,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,6.50]],fixed:300,fuel:0,tax:5,meter_rent:20}},
+  HR:{name:"Haryana (DHBVN/UHBVN)",domestic:{slabs:[[50,2.00],[100,2.50],[200,4.75],[400,5.25],[Infinity,6.00]],fixed:40,fuel:5,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,8.00]],fixed:120,fuel:5,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,6.80]],fixed:300,fuel:5,tax:5,meter_rent:20}},
+  PB:{name:"Punjab (PSPCL)",domestic:{slabs:[[100,0],[300,4.29],[Infinity,5.25]],fixed:30,fuel:5,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,8.00]],fixed:100,fuel:5,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,6.50]],fixed:280,fuel:5,tax:5,meter_rent:20}},
+  OD:{name:"Odisha (CESU/WESCO)",domestic:{slabs:[[50,1.75],[100,2.70],[200,3.95],[Infinity,5.30]],fixed:25,fuel:0,tax:0,meter_rent:10},commercial:{slabs:[[Infinity,7.00]],fixed:80,fuel:0,tax:0,meter_rent:15},industrial:{slabs:[[Infinity,6.00]],fixed:250,fuel:0,tax:0,meter_rent:20}},
+  BR:{name:"Bihar (NBPDCL/SBPDCL)",domestic:{slabs:[[100,4.27],[200,5.25],[Infinity,6.10]],fixed:40,fuel:5,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,8.50]],fixed:120,fuel:5,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,7.00]],fixed:300,fuel:5,tax:5,meter_rent:20}},
+  AS:{name:"Assam (APDCL)",domestic:{slabs:[[30,2.50],[100,3.50],[200,4.75],[Infinity,6.00]],fixed:30,fuel:0,tax:5,meter_rent:10},commercial:{slabs:[[Infinity,7.50]],fixed:100,fuel:0,tax:5,meter_rent:15},industrial:{slabs:[[Infinity,6.50]],fixed:280,fuel:0,tax:5,meter_rent:20}}
+};
+
+let consumerType='domestic';
+function setType(type,btn){
+  consumerType=type;
+  document.querySelectorAll('.consumer-types button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function calculate(){
+  const stateCode=document.getElementById('stateSelect').value;
+  const units=parseFloat(document.getElementById('units').value);
+  if(!stateCode){alert('Please select a state!');return;}
+  if(!units||units<0){alert('Please enter valid units!');return;}
+  const data=stateData[stateCode][consumerType];
+  const stateInfo=stateData[stateCode];
+  let remaining=units,energyCharge=0,prev=0,slabRows='',slabInfoText='<strong>Slab Rates:</strong><br/>';
+  for(let i=0;i<data.slabs.length;i++){
+    const[upto,rate]=data.slabs[i];
+    const slabSize=upto===Infinity?Infinity:upto-prev;
+    const consumed=upto===Infinity?remaining:Math.min(remaining,slabSize);
+    const rangeLabel=upto===Infinity?`${prev+1}+ units`:`${prev+1}–${upto} units`;
+    slabInfoText+=`${rangeLabel}: ₹${rate.toFixed(2)}/unit<br/>`;
+    if(consumed>0){
+      const cost=consumed*rate;
+      energyCharge+=cost;
+      slabRows+=`<div class="slab-row"><span class="slab-label">${rangeLabel}</span><span class="slab-units">${consumed.toFixed(0)} units × ₹${rate.toFixed(2)}</span><span class="slab-amount">₹${cost.toFixed(2)}</span></div>`;
+      remaining-=consumed;
+    }
+    prev=upto;
+    if(remaining<=0)break;
+  }
+  const fuelCharge=energyCharge*(data.fuel/100);
+  const subtotal=energyCharge+fuelCharge+data.fixed+data.meter_rent;
+  const taxCharge=subtotal*(data.tax/100);
+  const total=subtotal+taxCharge;
+  document.getElementById('totalAmount').innerHTML=`₹${total.toFixed(2)} <span>/month</span>`;
+  document.getElementById('stateLabel').textContent=stateInfo.name;
+  document.getElementById('unitsLabel').textContent=`${units} kWh • ${consumerType}`;
+  document.getElementById('slabBreakdown').innerHTML=`<div style="font-size:11px;letter-spacing:2px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px">ENERGY CHARGES</div>`+slabRows;
+  let extras=`<div class="charges-row"><span>Energy Charge</span><span>₹${energyCharge.toFixed(2)}</span></div><div class="charges-row"><span>Fixed / Demand Charge</span><span>₹${data.fixed.toFixed(2)}</span></div><div class="charges-row"><span>Meter Rent</span><span>₹${data.meter_rent.toFixed(2)}</span></div>`;
+  if(data.fuel>0)extras+=`<div class="charges-row"><span>Fuel Surcharge (${data.fuel}%)</span><span>₹${fuelCharge.toFixed(2)}</span></div>`;
+  if(data.tax>0)extras+=`<div class="charges-row"><span>Tax / Duty (${data.tax}%)</span><span>₹${taxCharge.toFixed(2)}</span></div>`;
+  document.getElementById('extraCharges').innerHTML=extras;
+  document.getElementById('finalTotal').textContent=`₹${total.toFixed(2)}`;
+  document.getElementById('slabInfo').innerHTML=slabInfoText;
+  const rc=document.getElementById('resultCard');
+  rc.classList.add('show');
+  rc.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+</script>
+</body>
+</html>
